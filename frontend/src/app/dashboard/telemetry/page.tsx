@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { BarChart3, FileText, MessageSquare, Layers, Zap, TrendingUp, Brain, Hash, Activity } from "lucide-react";
+import { BarChart3, FileText, MessageSquare, Layers, TrendingUp, Brain, Hash, Activity } from "lucide-react";
 import { documentAPI, chatAPI } from "@/utils/api";
 
 interface DocStats {
@@ -28,7 +28,15 @@ interface ChatStats {
     };
 }
 
-const StatCard = ({ icon: Icon, label, value, sub, delay }: any) => (
+interface StatCardProps {
+    icon: React.ComponentType<{ size?: number }>;
+    label: string;
+    value: string | number;
+    sub?: string;
+    delay: number;
+}
+
+const StatCard = ({ icon: Icon, label, value, sub, delay }: StatCardProps) => (
     <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -100,7 +108,7 @@ export default function TelemetryPage() {
                             <StatCard
                                 icon={FileText} label="Databanks"
                                 value={docStats?.totalDocuments ?? 0}
-                                sub={`[${embeddedDocs?.count ?? 0} Active]`} delay={0.05}
+                                sub={`[${embeddedDocs?.count ?? 0} Active / ${embeddedDocs?.size ? formatBytes(embeddedDocs.size) : '0 B'}]`} delay={0.05}
                             />
                             <StatCard
                                 icon={Layers} label="Chunks Total"

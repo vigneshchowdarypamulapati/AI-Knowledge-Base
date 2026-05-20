@@ -22,6 +22,15 @@ const MODEL_OPTIONS: { value: Model; label: string; desc: string }[] = [
     { value: "mixtral-8x7b-32768", label: "Mixtral 8×7B", desc: "Large context · Balanced" },
 ];
 
+const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
+    <button type="button" onClick={() => onChange(!value)} className="focus:outline-none">
+        {value
+            ? <ToggleRight size={28} className="text-white" />
+            : <ToggleLeft size={28} className="text-neutral-600" />
+        }
+    </button>
+);
+
 export default function SettingsPage() {
     const { user, refreshUser } = useAuth();
 
@@ -63,15 +72,6 @@ export default function SettingsPage() {
             setSavingRAG(false);
         }
     };
-
-    const Toggle = ({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) => (
-        <button type="button" onClick={() => onChange(!value)} className="focus:outline-none">
-            {value
-                ? <ToggleRight size={28} className="text-white" />
-                : <ToggleLeft size={28} className="text-neutral-600" />
-            }
-        </button>
-    );
 
     return (
         <div className="flex-1 overflow-y-auto hide-scrollbar p-8">

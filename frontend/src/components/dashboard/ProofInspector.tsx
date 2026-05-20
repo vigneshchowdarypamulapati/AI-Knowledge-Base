@@ -1,6 +1,6 @@
 "use client";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, ExternalLink, Zap } from "lucide-react";
+import { X, ExternalLink } from "lucide-react";
 
 export interface Citation {
     documentId: string;
@@ -43,7 +43,7 @@ export default function ProofInspector({ citation, query, onClose }: ProofInspec
                     part
                 );
             });
-        } catch (e) {
+        } catch {
             return text;
         }
     };
@@ -106,7 +106,7 @@ export default function ProofInspector({ citation, query, onClose }: ProofInspec
                                 <div className="p-5 bg-white/[0.02] backdrop-blur-sm rounded-r-lg border border-white/10 border-l-0 relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/[0.01] rounded-full blur-2xl pointer-events-none" />
                                     <p className="font-serif text-sm leading-loose text-neutral-300 italic">
-                                        "{highlightText(citation.chunkText, query)}"
+                                        &quot;{highlightText(citation.chunkText, query)}&quot;
                                     </p>
                                 </div>
                                 <div className="mt-4 flex items-center justify-between px-1">

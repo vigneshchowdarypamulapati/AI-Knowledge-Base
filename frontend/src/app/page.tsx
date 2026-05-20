@@ -45,8 +45,9 @@ export default function AuthPage() {
                 toast.success("Password reset successfully. Please log in.");
                 setAuthState("login");
             }
-        } catch (error: any) {
-            toast.error(error.response?.data?.error || "An error occurred");
+        } catch (error) {
+            const err = error as { response?: { data?: { error?: string } } };
+            toast.error(err.response?.data?.error || "An error occurred");
         } finally {
             setLoading(false);
         }
@@ -179,7 +180,7 @@ export default function AuthPage() {
                     </div>
                     
                     <h2 className="font-serif text-3xl text-neutral-300 italic mb-4">
-                        "The interface is the intelligence."
+                        &quot;The interface is the intelligence.&quot;
                     </h2>
                     <p className="text-neutral-500 font-mono text-xs uppercase tracking-widest leading-loose">
                         Semantic vectors · Contextual retrieval · Immutable citations

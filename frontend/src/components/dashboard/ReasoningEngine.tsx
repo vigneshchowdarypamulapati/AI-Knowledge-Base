@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, CornerDownLeft, TerminalSquare, Plus, Sliders, Sparkles, HelpCircle } from "lucide-react";
+import { CornerDownLeft, TerminalSquare, Plus, HelpCircle } from "lucide-react";
 import { useChat } from "@/context/ChatContext";
 import { useDocuments } from "@/context/DocumentContext";
 import ReactMarkdown from "react-markdown";
@@ -17,7 +17,7 @@ export default function ReasoningEngine() {
     const [selectedCitation, setSelectedCitation] = useState<Citation | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
-    const [hasActiveChat, setHasActiveChat] = useState(false);
+    const hasActiveChat = !!activeChat;
     const [engineProfile, setEngineProfile] = useState<"turbo" | "deep">("turbo");
     const [ragMode, setRagMode] = useState<"direct" | "hyde">("direct");
 
@@ -50,10 +50,6 @@ export default function ReasoningEngine() {
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
     }, [clearMessages]);
-
-    useEffect(() => {
-        setHasActiveChat(!!activeChat);
-    }, [activeChat]);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -129,7 +125,7 @@ export default function ReasoningEngine() {
                             accumulatedContent += data.content;
                             updateMessage(aiMsgId, { content: accumulatedContent });
                         } else if (data.type === "sources") {
-                            const formattedSources = data.content.map((src: any) => ({
+                            const formattedSources = data.content.map((src: { documentId: string; documentName: string; chunkText: string; similarity: number }) => ({
                                 documentId: src.documentId,
                                 documentName: src.documentName,
                                 chunkText: src.chunkText,
@@ -139,7 +135,7 @@ export default function ReasoningEngine() {
                         } else if (data.type === "error") {
                             toast.error(data.content);
                         }
-                    } catch (e) {
+                    } catch {
                         // Ignore parse errors on partial chunks
                     }
                 }
