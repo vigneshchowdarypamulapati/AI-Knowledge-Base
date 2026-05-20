@@ -94,8 +94,8 @@ Results are saved to `backend/eval/results/`.
 
 | Layer | Technology |
 |---|---|
-| Frontend | React 18 + TypeScript + Vite |
-| Styling | Vanilla CSS design system (dark theme) |
+| Frontend | Next.js 15 (App Router) + TypeScript |
+| Styling | Tailwind CSS + Framer Motion (Obsidian/Glass theme) |
 | Backend | Node.js + Express (ESM) |
 | Database | MongoDB Atlas |
 | Vector Search | MongoDB Atlas Vector Search (`$vectorSearch`, HNSW) |
@@ -172,7 +172,7 @@ cd backend && npm run dev
 cd frontend && npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173)
+Open [http://localhost:3000](http://localhost:3000)
 
 ---
 
@@ -192,25 +192,17 @@ docmind/
 │   │       ├── chunkService.js     # Token-aware chunking (gpt-tokenizer)
 │   │       ├── vectorService.js    # Atlas $vectorSearch + fallback
 │   │       ├── ragService.js       # HyDE + generation + citations
-│   │       ├── embeddingService.js # Gemini text-embedding-004
-│   │       └── textExtractor.js   # PDF/DOCX/TXT extraction
+│   │       └── textExtractor.js    # PDF/DOCX/TXT extraction
 │   └── eval/
-│       ├── queries.json            # 65 labeled test queries
-│       ├── eval_runner.js          # Precision@K evaluation
-│       └── metrics.js             # Metric computation
 ├── frontend/
-│   └── src/
-│       ├── components/
-│       │   ├── ChatWindow.tsx      # Chat UI + SSE streaming
-│       │   ├── CitationPanel.tsx   # Source citations with similarity
-│       │   └── Sidebar.tsx         # Navigation + chat history
-│       ├── pages/
-│       │   ├── Analytics.tsx       # Stats dashboard
-│       │   └── Settings.tsx        # RAG configuration
-│       └── context/               # Auth, Document, Chat state
+│   ├── src/
+│   │   ├── app/                    # Next.js App Router (dashboard, layout, providers)
+│   │   ├── components/dashboard/
+│   │   │   ├── KnowledgeMap.tsx    # Sidebar database control, upload & filter
+│   │   │   ├── ReasoningEngine.tsx # Chat interface, model selectors & shortcut modal
+│   │   │   └── ProofInspector.tsx  # Right pane citation keyword highlighting & confidence meter
+│   │   └── context/                # Auth, Document, Chat state Contexts
 └── .github/
-    └── workflows/
-        └── ci.yml                  # Lint + build + eval validation
 ```
 
 ---
