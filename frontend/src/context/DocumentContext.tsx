@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+"use client";
+import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { documentsAPI } from '../utils/api';
 
 interface Document {

@@ -10,7 +10,7 @@ const initializeGemini = () => {
   }
 
   genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-  embeddingModel = genAI.getGenerativeModel({ model: "text-embedding-004" });
+  embeddingModel = genAI.getGenerativeModel({ model: "gemini-embedding-2" });
   
   console.log('✅ Gemini (Embeddings) initialized');
 };

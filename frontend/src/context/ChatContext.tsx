@@ -1,3 +1,4 @@
+"use client";
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
 import { chatAPI } from '../utils/api';
 

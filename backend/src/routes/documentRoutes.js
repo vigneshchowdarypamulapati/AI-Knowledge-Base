@@ -1,11 +1,13 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
-import { 
-  uploadDocument, 
-  getDocuments, 
-  getDocument, 
-  deleteDocument 
+import {
+  uploadDocument,
+  getDocuments,
+  getDocument,
+  reprocessDocument,
+  deleteDocument,
+  getDocumentStats
 } from '../controllers/documentController.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -17,7 +19,7 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, uniqueSuffix + path.extname(file.originalname));
   }
 });
@@ -28,7 +30,6 @@ const fileFilter = (req, file, cb) => {
     'text/plain',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
   ];
-  
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -39,18 +40,18 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage,
   fileFilter,
-  limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
-  }
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
 });
 
 // All routes require authentication
 router.use(authenticate);
 
-// Document routes
+// ── Routes ─────────────────────────────────────────────────────────────────────
+router.get('/stats', getDocumentStats);          // analytics stats
 router.post('/upload', upload.single('file'), uploadDocument);
 router.get('/', getDocuments);
 router.get('/:id', getDocument);
+router.post('/:id/reprocess', reprocessDocument); // re-index document
 router.delete('/:id', deleteDocument);
 
 export default router;

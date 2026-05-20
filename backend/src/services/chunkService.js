@@ -1,102 +1,116 @@
 /**
- * Chunk text into smaller segments for embedding
- * Uses sliding window approach with overlap for context preservation
+ * Token-Aware Chunking Service
+ *
+ * Strategy: Variable-size sliding windows of 350–450 tokens with 10–15% overlap.
+ * This matches the evaluation finding that variable chunking with overlap
+ * outperforms fixed chunking significantly (60% → 85% top-k precision).
+ *
+ * Uses gpt-tokenizer (cl100k_base) for accurate token counting — compatible
+ * with most modern embedding models including Gemini text-embedding-004.
  */
 
-const DEFAULT_CHUNK_SIZE = 800;  // characters
-const DEFAULT_OVERLAP = 200;     // characters overlap between chunks
+import { encode, decode } from 'gpt-tokenizer';
+
+// ── Default Strategy Parameters ──────────────────────────────────────────────
+const DEFAULTS = {
+  minTokens: 350,
+  maxTokens: 450,
+  overlapRatio: 0.12,     // 12% — center of the 10–15% target range
+  minChunkChars: 50,       // discard tiny shard chunks
+};
 
 /**
- * Split text into semantic chunks
- * @param {string} text - The full document text
- * @param {number} chunkSize - Maximum characters per chunk
- * @param {number} overlap - Overlap between consecutive chunks
- * @returns {Array} Array of chunk objects
+ * Chunk text into variable-size token windows with overlap.
+ *
+ * @param {string} text - Full document text
+ * @param {object} [opts] - Override defaults
+ * @param {number} [opts.minTokens=350]
+ * @param {number} [opts.maxTokens=450]
+ * @param {number} [opts.overlapRatio=0.12]
+ * @returns {Array<{text, tokenCount, chunkIndex, startToken, endToken, metadata}>}
  */
-export const chunkText = (text, chunkSize = DEFAULT_CHUNK_SIZE, overlap = DEFAULT_OVERLAP) => {
-  if (!text || text.trim().length === 0) {
-    return [];
-  }
+export const chunkText = (text, opts = {}) => {
+  const { minTokens, maxTokens, overlapRatio, minChunkChars } = { ...DEFAULTS, ...opts };
 
-  // Clean the text
-  const cleanedText = text
-    .replace(/\r\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
+  if (!text || text.trim().length === 0) return [];
+
+  // Normalise whitespace
+  const cleaned = text.replace(/\r\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+
+  // Tokenise the entire document once
+  const allTokens = encode(cleaned);
+  if (allTokens.length === 0) return [];
 
   const chunks = [];
-  let startIndex = 0;
+  let startIdx = 0;
   let chunkIndex = 0;
 
-  while (startIndex < cleanedText.length) {
-    let endIndex = startIndex + chunkSize;
-    
-    // If we're not at the end, try to break at a sentence or paragraph boundary
-    if (endIndex < cleanedText.length) {
-      // Look for natural break points (sentence end, paragraph)
-      const searchStart = Math.max(startIndex + chunkSize - 100, startIndex);
-      const searchText = cleanedText.slice(searchStart, endIndex + 50);
-      
-      // Priority: paragraph > sentence > word boundary
-      const paragraphBreak = searchText.lastIndexOf('\n\n');
-      const sentenceBreak = Math.max(
-        searchText.lastIndexOf('. '),
-        searchText.lastIndexOf('! '),
-        searchText.lastIndexOf('? ')
-      );
-      const wordBreak = searchText.lastIndexOf(' ');
-      
-      if (paragraphBreak > 50) {
-        endIndex = searchStart + paragraphBreak + 2;
-      } else if (sentenceBreak > 0) {
-        endIndex = searchStart + sentenceBreak + 2;
-      } else if (wordBreak > 0) {
-        endIndex = searchStart + wordBreak + 1;
-      }
-    } else {
-      endIndex = cleanedText.length;
-    }
+  while (startIdx < allTokens.length) {
+    // Pick a random window size in [minTokens, maxTokens]
+    const windowSize =
+      minTokens + Math.floor(Math.random() * (maxTokens - minTokens + 1));
 
-    const chunkText = cleanedText.slice(startIndex, endIndex).trim();
-    
-    if (chunkText.length > 0) {
+    const endIdx = Math.min(startIdx + windowSize, allTokens.length);
+    const chunkTokens = allTokens.slice(startIdx, endIdx);
+
+    // Decode tokens back to text
+    const chunkText = decode(chunkTokens).trim();
+
+    if (chunkText.length >= minChunkChars) {
+      const wordCount = chunkText.split(/\s+/).filter(Boolean).length;
       chunks.push({
         text: chunkText,
+        tokenCount: chunkTokens.length,
         chunkIndex,
-        startChar: startIndex,
-        endChar: endIndex,
+        startToken: startIdx,
+        endToken: endIdx - 1,
         metadata: {
-          wordCount: chunkText.split(/\s+/).filter(Boolean).length,
-          charCount: chunkText.length
-        }
+          tokenCount: chunkTokens.length,
+          wordCount,
+          charCount: chunkText.length,
+        },
       });
       chunkIndex++;
     }
 
-    // Move start position, accounting for overlap
-    // If we reached the end of the text, stop
-    if (endIndex >= cleanedText.length) {
-      break;
-    }
+    // Break if we've consumed all tokens
+    if (endIdx >= allTokens.length) break;
 
-    startIndex = endIndex - overlap;
-    
-    // Prevent infinite loop - ensure we always move forward
-    if (startIndex <= chunks[chunks.length - 1].startChar) {
-       startIndex = chunks[chunks.length - 1].startChar + 1;
-    }
+    // Advance with overlap: step = windowSize * (1 - overlapRatio)
+    const step = Math.max(1, Math.floor(windowSize * (1 - overlapRatio)));
+    startIdx += step;
   }
 
   return chunks;
 };
 
 /**
- * Estimate the number of chunks for a given text
+ * Estimate how many chunks a text will produce (without actually tokenising).
+ * Useful for progress bars during upload.
  */
-export const estimateChunkCount = (text, chunkSize = DEFAULT_CHUNK_SIZE, overlap = DEFAULT_OVERLAP) => {
+export const estimateChunkCount = (text, opts = {}) => {
+  const { minTokens, maxTokens, overlapRatio } = { ...DEFAULTS, ...opts };
   if (!text) return 0;
-  const effectiveChunkSize = chunkSize - overlap;
-  return Math.ceil(text.length / effectiveChunkSize);
+
+  // Rough estimate: 1 token ≈ 4 characters for English text
+  const estimatedTokens = Math.ceil(text.length / 4);
+  const avgWindow = (minTokens + maxTokens) / 2;
+  const step = avgWindow * (1 - overlapRatio);
+  return Math.max(1, Math.ceil(estimatedTokens / step));
 };
 
-export default { chunkText, estimateChunkCount };
+/**
+ * Get chunking strategy stats for a given text (used by eval harness).
+ */
+export const getChunkStats = (chunks) => {
+  if (!chunks || chunks.length === 0) return null;
+  const tokenCounts = chunks.map((c) => c.tokenCount);
+  return {
+    count: chunks.length,
+    minTokens: Math.min(...tokenCounts),
+    maxTokens: Math.max(...tokenCounts),
+    avgTokens: Math.round(tokenCounts.reduce((a, b) => a + b, 0) / chunks.length),
+  };
+};
+
+export default { chunkText, estimateChunkCount, getChunkStats };

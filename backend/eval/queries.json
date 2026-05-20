@@ -1,0 +1,457 @@
+[
+  {
+    "id": "q001",
+    "query": "What is the main topic of this document?",
+    "expectedKeywords": ["main", "topic", "subject", "about", "focus"],
+    "category": "general",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q002",
+    "query": "What are the key findings or conclusions?",
+    "expectedKeywords": ["finding", "conclusion", "result", "outcome", "summary"],
+    "category": "general",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q003",
+    "query": "What methodology or approach was used?",
+    "expectedKeywords": ["method", "approach", "technique", "process", "procedure"],
+    "category": "methodology",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q004",
+    "query": "What are the limitations mentioned?",
+    "expectedKeywords": ["limitation", "constraint", "drawback", "weakness", "challenge"],
+    "category": "analysis",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q005",
+    "query": "Who are the key people or authors mentioned?",
+    "expectedKeywords": ["author", "researcher", "team", "person", "name"],
+    "category": "entities",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q006",
+    "query": "What data or evidence is presented?",
+    "expectedKeywords": ["data", "evidence", "statistics", "figure", "percentage"],
+    "category": "evidence",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q007",
+    "query": "What recommendations are made?",
+    "expectedKeywords": ["recommend", "suggest", "propose", "advise", "should"],
+    "category": "recommendations",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q008",
+    "query": "What are the technical requirements or specifications?",
+    "expectedKeywords": ["require", "specification", "technical", "need", "must"],
+    "category": "technical",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q009",
+    "query": "What is the timeline or schedule mentioned?",
+    "expectedKeywords": ["timeline", "schedule", "date", "deadline", "period"],
+    "category": "temporal",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q010",
+    "query": "What costs or budget information is provided?",
+    "expectedKeywords": ["cost", "budget", "price", "expense", "financial"],
+    "category": "financial",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q011",
+    "query": "What risks are identified?",
+    "expectedKeywords": ["risk", "threat", "danger", "concern", "issue"],
+    "category": "risk",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q012",
+    "query": "How does this compare to alternatives?",
+    "expectedKeywords": ["compare", "alternative", "versus", "differ", "contrast"],
+    "category": "comparative",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q013",
+    "query": "What performance metrics are reported?",
+    "expectedKeywords": ["performance", "metric", "accuracy", "precision", "recall"],
+    "category": "metrics",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q014",
+    "query": "What is the background or context?",
+    "expectedKeywords": ["background", "context", "history", "previously", "prior"],
+    "category": "context",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q015",
+    "query": "What tools or technologies are used?",
+    "expectedKeywords": ["tool", "technology", "software", "framework", "library"],
+    "category": "technical",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q016",
+    "query": "What examples or case studies are provided?",
+    "expectedKeywords": ["example", "case study", "instance", "illustration", "scenario"],
+    "category": "examples",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q017",
+    "query": "What is the problem being solved?",
+    "expectedKeywords": ["problem", "challenge", "issue", "solve", "address"],
+    "category": "problem_statement",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q018",
+    "query": "What future work is planned?",
+    "expectedKeywords": ["future", "plan", "next", "upcoming", "will"],
+    "category": "future",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q019",
+    "query": "What is the evaluation framework used?",
+    "expectedKeywords": ["evaluation", "framework", "assess", "measure", "test"],
+    "category": "evaluation",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q020",
+    "query": "What datasets or inputs were used in the study?",
+    "expectedKeywords": ["dataset", "input", "corpus", "collection", "sample"],
+    "category": "data",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q021",
+    "query": "How is the system architecture described?",
+    "expectedKeywords": ["architecture", "system", "component", "module", "design"],
+    "category": "architecture",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q022",
+    "query": "What security considerations are discussed?",
+    "expectedKeywords": ["security", "privacy", "protect", "encrypt", "auth"],
+    "category": "security",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q023",
+    "query": "What are the success criteria?",
+    "expectedKeywords": ["success", "criteria", "goal", "objective", "target"],
+    "category": "objectives",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q024",
+    "query": "How is the output or result formatted?",
+    "expectedKeywords": ["output", "result", "format", "structure", "response"],
+    "category": "output",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q025",
+    "query": "What are the assumptions made?",
+    "expectedKeywords": ["assumption", "assume", "presuppose", "given", "premise"],
+    "category": "assumptions",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q026",
+    "query": "What validation or testing was done?",
+    "expectedKeywords": ["validation", "testing", "verify", "check", "confirm"],
+    "category": "validation",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q027",
+    "query": "What are the key terms defined?",
+    "expectedKeywords": ["define", "term", "concept", "meaning", "refer"],
+    "category": "definitions",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q028",
+    "query": "What stakeholders or users are targeted?",
+    "expectedKeywords": ["stakeholder", "user", "audience", "customer", "target"],
+    "category": "stakeholders",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q029",
+    "query": "What integration or compatibility is required?",
+    "expectedKeywords": ["integration", "compatible", "interface", "connect", "API"],
+    "category": "integration",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q030",
+    "query": "How is scalability addressed?",
+    "expectedKeywords": ["scale", "scalability", "grow", "handle", "capacity"],
+    "category": "scalability",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q031",
+    "query": "What is the expected outcome or deliverable?",
+    "expectedKeywords": ["deliverable", "outcome", "produce", "output", "artifact"],
+    "category": "deliverables",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q032",
+    "query": "What references or citations are included?",
+    "expectedKeywords": ["reference", "citation", "source", "bibliography", "cite"],
+    "category": "references",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q033",
+    "query": "What are the steps in the process?",
+    "expectedKeywords": ["step", "process", "sequence", "procedure", "workflow"],
+    "category": "process",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q034",
+    "query": "What accuracy or precision values are reported?",
+    "expectedKeywords": ["accuracy", "precision", "recall", "F1", "score"],
+    "category": "metrics",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q035",
+    "query": "What resources are required?",
+    "expectedKeywords": ["resource", "require", "need", "hardware", "memory"],
+    "category": "resources",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q036",
+    "query": "Who is responsible for each part?",
+    "expectedKeywords": ["responsible", "owner", "assign", "team", "role"],
+    "category": "responsibility",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q037",
+    "query": "What policies or rules apply?",
+    "expectedKeywords": ["policy", "rule", "regulation", "guideline", "standard"],
+    "category": "policy",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q038",
+    "query": "How is feedback collected or handled?",
+    "expectedKeywords": ["feedback", "review", "comment", "iterate", "improve"],
+    "category": "feedback",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q039",
+    "query": "What are the input formats accepted?",
+    "expectedKeywords": ["input", "format", "accept", "type", "extension"],
+    "category": "input",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q040",
+    "query": "What monitoring or logging is described?",
+    "expectedKeywords": ["monitor", "log", "track", "alert", "dashboard"],
+    "category": "monitoring",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q041",
+    "query": "What training or learning is involved?",
+    "expectedKeywords": ["train", "learn", "model", "epoch", "optimize"],
+    "category": "ml_training",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q042",
+    "query": "What are the baseline results?",
+    "expectedKeywords": ["baseline", "benchmark", "comparison", "reference", "initial"],
+    "category": "baseline",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q043",
+    "query": "How is quality ensured?",
+    "expectedKeywords": ["quality", "ensure", "standard", "review", "control"],
+    "category": "quality",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q044",
+    "query": "What version or iteration is described?",
+    "expectedKeywords": ["version", "iteration", "release", "update", "revision"],
+    "category": "versioning",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q045",
+    "query": "What is the deployment strategy?",
+    "expectedKeywords": ["deploy", "production", "release", "ship", "launch"],
+    "category": "deployment",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q046",
+    "query": "How are errors or failures handled?",
+    "expectedKeywords": ["error", "failure", "exception", "fallback", "handle"],
+    "category": "error_handling",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q047",
+    "query": "What configuration options are available?",
+    "expectedKeywords": ["configuration", "setting", "option", "parameter", "customize"],
+    "category": "configuration",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q048",
+    "query": "What is the overall goal or mission?",
+    "expectedKeywords": ["goal", "mission", "vision", "aim", "purpose"],
+    "category": "mission",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q049",
+    "query": "What is the sample size or scale of the study?",
+    "expectedKeywords": ["sample", "size", "scale", "number", "participants"],
+    "category": "scale",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q050",
+    "query": "What are the experimental conditions?",
+    "expectedKeywords": ["experiment", "condition", "setup", "trial", "configuration"],
+    "category": "experimental",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q051",
+    "query": "What tables or figures are discussed?",
+    "expectedKeywords": ["table", "figure", "chart", "graph", "diagram"],
+    "category": "visuals",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q052",
+    "query": "What is the summary or abstract?",
+    "expectedKeywords": ["summary", "abstract", "overview", "brief", "synopsis"],
+    "category": "summary",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q053",
+    "query": "What patterns or trends are identified?",
+    "expectedKeywords": ["pattern", "trend", "tendency", "observe", "emerge"],
+    "category": "patterns",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q054",
+    "query": "What is the computational complexity?",
+    "expectedKeywords": ["complexity", "time", "space", "Big-O", "computational"],
+    "category": "complexity",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q055",
+    "query": "How is the document structured or organized?",
+    "expectedKeywords": ["structure", "organize", "section", "chapter", "layout"],
+    "category": "structure",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q056",
+    "query": "What abbreviations or acronyms are used?",
+    "expectedKeywords": ["abbreviation", "acronym", "stand for", "refers to", "short for"],
+    "category": "terminology",
+    "difficulty": "easy"
+  },
+  {
+    "id": "q057",
+    "query": "What ethical considerations are raised?",
+    "expectedKeywords": ["ethical", "ethics", "bias", "fairness", "responsible"],
+    "category": "ethics",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q058",
+    "query": "What collaboration or partnerships are mentioned?",
+    "expectedKeywords": ["collaboration", "partner", "joint", "together", "cooperation"],
+    "category": "collaboration",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q059",
+    "query": "What are the dependencies or prerequisites?",
+    "expectedKeywords": ["dependency", "prerequisite", "require", "depend", "need"],
+    "category": "dependencies",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q060",
+    "query": "What reproducibility steps are provided?",
+    "expectedKeywords": ["reproduce", "replicate", "repeat", "follow", "instruction"],
+    "category": "reproducibility",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q061",
+    "query": "How is user interaction or experience designed?",
+    "expectedKeywords": ["user", "interaction", "experience", "interface", "design"],
+    "category": "ux",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q062",
+    "query": "What inference or analysis is drawn?",
+    "expectedKeywords": ["infer", "analyze", "conclude", "deduce", "interpret"],
+    "category": "analysis",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q063",
+    "query": "What ground truth or labels are used?",
+    "expectedKeywords": ["ground truth", "label", "annotate", "gold standard", "reference"],
+    "category": "ground_truth",
+    "difficulty": "hard"
+  },
+  {
+    "id": "q064",
+    "query": "What storage or persistence mechanism is used?",
+    "expectedKeywords": ["storage", "persist", "database", "store", "save"],
+    "category": "storage",
+    "difficulty": "medium"
+  },
+  {
+    "id": "q065",
+    "query": "What is the latency or response time?",
+    "expectedKeywords": ["latency", "response time", "speed", "fast", "millisecond"],
+    "category": "performance",
+    "difficulty": "hard"
+  }
+]

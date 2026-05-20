@@ -67,42 +67,43 @@ export default function DocumentsPage() {
 
     return (
         <Layout>
-            <div style={{ padding: 'var(--space-8)', maxWidth: '1200px' }}>
-                <div className="page-header flex justify-between items-center">
+            <div style={{ padding: 'var(--space-8)', maxWidth: '1200px', margin: '0 auto' }}>
+                <div className="page-header flex justify-between items-end mb-8 border-b border-strong pb-4">
                     <div>
-                        <h1 className="page-title text-gradient">Documents</h1>
-                        <p className="page-subtitle">Upload and manage your knowledge base</p>
+                        <h1 className="editorial-heading mb-0" style={{ fontSize: '4rem' }}>Databanks.</h1>
+                        <p className="text-mono text-muted uppercase tracking-widest text-sm mt-2">
+                            Upload and manage your knowledge base
+                        </p>
                     </div>
                     <button
                         onClick={fetchDocuments}
                         className="btn btn-secondary"
                         disabled={isLoading}
                     >
-                        <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                        Refresh
+                        <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
+                        SYNC
                     </button>
                 </div>
 
                 {/* Upload Section */}
-                <div className="mb-8">
+                <div className="mb-10">
                     <DocumentUpload />
                 </div>
 
                 {/* Selection Actions */}
                 {documents.length > 0 && (
-                    <div className="flex items-center gap-4 mb-4">
+                    <div className="flex items-center gap-4 mb-6">
                         <button
                             onClick={selectedDocuments.length === documents.filter(d => d.status === 'embedded').length ? clearSelection : selectAllDocuments}
-                            className="text-sm font-medium"
-                            style={{ color: 'var(--primary-400)' }}
+                            className="text-mono text-xs uppercase tracking-widest text-accent hover:underline"
                         >
                             {selectedDocuments.length === documents.filter(d => d.status === 'embedded').length
-                                ? 'Deselect All'
-                                : 'Select All Ready'}
+                                ? '[ DESELECT ALL ]'
+                                : '[ SELECT ALL READY ]'}
                         </button>
                         {selectedDocuments.length > 0 && (
-                            <span className="text-sm" style={{ color: 'var(--gray-400)' }}>
-                                {selectedDocuments.length} selected for chat
+                            <span className="text-mono text-xs uppercase tracking-widest text-muted border border-border-strong px-2 py-1">
+                                {selectedDocuments.length} SELECTED
                             </span>
                         )}
                     </div>
@@ -119,24 +120,25 @@ export default function DocumentsPage() {
                             onClick={() => doc.status === 'embedded' && toggleDocumentSelection(doc._id)}
                             className={`document-card ${selectedDocuments.includes(doc._id) ? 'selected' : ''}`}
                         >
-                            <div className="flex items-start gap-3">
-                                <div className="document-icon">
-                                    <FileText size={20} />
+                            <div className="flex items-start gap-4">
+                                <div className="text-accent">
+                                    <FileText size={24} />
                                 </div>
-                                <div className="flex-1" style={{ minWidth: 0 }}>
-                                    <h3 className="font-medium truncate">{doc.originalName}</h3>
-                                    <div className="flex items-center gap-2 mt-2">
-                                        {getStatusBadge(doc.status)}
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-serif text-lg truncate mb-2">{doc.originalName}</h3>
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-mono text-xs uppercase tracking-widest">
+                                            {getStatusBadge(doc.status)}
+                                        </div>
                                         {doc.chunkCount > 0 && (
-                                            <span className="text-xs" style={{ color: 'var(--gray-500)' }}>
-                                                {doc.chunkCount} chunks
+                                            <span className="text-mono text-xs text-muted uppercase tracking-widest border border-border-strong px-1">
+                                                {doc.chunkCount} CHUNKS
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-2 mt-2 text-xs" style={{ color: 'var(--gray-500)' }}>
-                                        <span>{formatSize(doc.size)}</span>
-                                        <span>•</span>
-                                        <span>{formatDate(doc.createdAt)}</span>
+                                    <div className="flex flex-col gap-1 mt-4 text-mono text-xs text-muted uppercase tracking-widest">
+                                        <span>SIZE: {formatSize(doc.size)}</span>
+                                        <span>DATE: {formatDate(doc.createdAt)}</span>
                                     </div>
                                 </div>
                                 <button
@@ -146,25 +148,27 @@ export default function DocumentsPage() {
                                     }}
                                     className="btn-ghost"
                                     title="Delete"
-                                    style={{ color: 'var(--gray-400)' }}
+                                    style={{ padding: '4px', alignSelf: 'flex-start' }}
                                 >
                                     <Trash2 size={16} />
                                 </button>
                             </div>
                             {doc.error && (
-                                <p className="mt-2 text-xs" style={{ color: 'var(--error)' }}>{doc.error}</p>
+                                <div className="mt-4 text-mono text-xs uppercase tracking-widest p-2 border border-error text-error">
+                                    [ERROR]: {doc.error}
+                                </div>
                             )}
                         </motion.div>
                     ))}
                 </div>
 
                 {documents.length === 0 && !isLoading && (
-                    <div className="empty-state">
-                        <div className="empty-state-icon">
-                            <FileText size={28} />
+                    <div className="flex flex-col items-center justify-center p-10 border border-border-strong mt-10">
+                        <div className="text-muted mb-4">
+                            <FileText size={32} />
                         </div>
-                        <h3 className="text-lg font-semibold mb-2">No documents yet</h3>
-                        <p style={{ color: 'var(--gray-400)' }}>Upload your first document to get started</p>
+                        <h3 className="text-serif text-2xl mb-2 text-muted">No databanks found</h3>
+                        <p className="text-mono text-xs uppercase tracking-widest text-muted">Initialize the system by uploading a document.</p>
                     </div>
                 )}
             </div>

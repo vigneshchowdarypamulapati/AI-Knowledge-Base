@@ -9,7 +9,9 @@ import {
     Trash2,
     MoreHorizontal,
     Pin,
-    Archive
+    Archive,
+    FileText,
+    BarChart3
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
@@ -17,6 +19,8 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 const navItems = [
+    { path: '/documents', icon: FileText, label: 'Documents' },
+    { path: '/analytics', icon: BarChart3, label: 'Analytics' },
     { path: '/settings', icon: Settings, label: 'Settings' }
 ];
 
@@ -69,22 +73,9 @@ export default function Sidebar() {
         <aside className="sidebar">
             {/* Logo */}
             <div className="sidebar-header">
-                <div className="flex items-center gap-3">
-                    <div
-                        className="flex items-center justify-center"
-                        style={{
-                            width: '44px',
-                            height: '44px',
-                            borderRadius: 'var(--radius-xl)',
-                            background: 'linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%)'
-                        }}
-                    >
-                        <Brain size={24} color="white" />
-                    </div>
-                    <div>
-                        <h1 className="font-bold text-lg text-gradient">Knowledge Base</h1>
-                        <p className="text-xs" style={{ color: 'var(--gray-500)' }}>AI-Powered RAG</p>
-                    </div>
+                <div className="brand-logo">
+                    <Brain size={24} />
+                    DocMind
                 </div>
             </div>
 
@@ -97,64 +88,41 @@ export default function Sidebar() {
                     className="btn btn-primary w-full"
                 >
                     <Plus size={18} />
-                    New Chat
+                    NEW CHAT
                 </motion.button>
             </div>
 
             {/* Chat History */}
-            <div className="sidebar-content" style={{ flex: 1, overflowY: 'auto' }}>
-                <p className="text-xs font-medium mb-2 px-4" style={{ color: 'var(--gray-500)' }}>
-                    Recent Chats
+            <div className="sidebar-nav">
+                <p className="text-mono text-xs text-muted mb-2 px-4 uppercase tracking-widest">
+                    Recent
                 </p>
-                <ul style={{ listStyle: 'none', padding: '0 var(--space-2)' }}>
+                <ul style={{ listStyle: 'none' }}>
                     {chats.length === 0 ? (
-                        <li className="text-sm px-3 py-2" style={{ color: 'var(--gray-600)' }}>
+                        <li className="text-mono text-sm px-4 py-2 text-muted">
                             No chats yet
                         </li>
                     ) : (
                         chats.map((chat) => (
                             <motion.li
                                 key={chat._id}
-                                whileHover={{ backgroundColor: 'var(--gray-800)' }}
                                 onClick={() => handleSelectChat(chat._id)}
-                                className={`chat-history-item ${activeChatId === chat._id ? 'active' : ''}`}
-                                style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 'var(--space-2)',
-                                    padding: 'var(--space-2) var(--space-3)',
-                                    borderRadius: 'var(--radius-md)',
-                                    cursor: 'pointer',
-                                    marginBottom: 'var(--space-1)',
-                                    background: activeChatId === chat._id ? 'var(--gray-800)' : 'transparent',
-                                    border: activeChatId === chat._id ? '1px solid var(--primary-500)' : '1px solid transparent'
-                                }}
+                                className={`nav-item ${activeChatId === chat._id ? 'active' : ''}`}
+                                style={{ cursor: 'pointer', position: 'relative' }}
                             >
-                                <MessageSquare size={16} style={{ flexShrink: 0, color: 'var(--gray-400)' }} />
-                                <span className="text-sm truncate flex-1" style={{
-                                    color: activeChatId === chat._id ? 'white' : 'var(--gray-300)'
-                                }}>
-                                    {chat.title}
-                                </span>
-                                <div className="chat-options-menu relative">
-                                    <motion.button
-                                        whileHover={{ color: 'var(--gray-300)' }}
+                                <MessageSquare size={16} />
+                                <span className="truncate flex-1">{chat.title}</span>
+                                <div className="chat-options-menu relative" style={{ marginLeft: 'auto' }}>
+                                    <button
                                         onClick={(e) => {
                                             e.stopPropagation();
                                             setActiveMenuId(activeMenuId === chat._id ? null : chat._id);
                                         }}
-                                        className="flex items-center justify-center rounded-md hover:bg-white/5 transition-colors"
-                                        style={{
-                                            padding: '4px',
-                                            color: 'var(--gray-500)',
-                                            opacity: activeChatId === chat._id ? 1 : 0.6,
-                                            border: 'none',
-                                            background: 'transparent',
-                                            outline: 'none'
-                                        }}
+                                        className="btn-ghost"
+                                        style={{ padding: '4px' }}
                                     >
                                         <MoreHorizontal size={16} />
-                                    </motion.button>
+                                    </button>
 
                                     {activeMenuId === chat._id && (
                                         <div
@@ -162,14 +130,10 @@ export default function Sidebar() {
                                                 position: 'absolute',
                                                 right: 0,
                                                 top: '100%',
-                                                marginTop: '4px',
-                                                background: 'var(--gray-900)',
-                                                border: '1px solid var(--gray-800)',
-                                                borderRadius: 'var(--radius-md)',
-                                                boxShadow: 'var(--shadow-lg)',
+                                                background: 'var(--bg-surface-elevated)',
+                                                border: '1px solid var(--border-strong)',
                                                 zIndex: 50,
-                                                minWidth: '120px',
-                                                overflow: 'hidden'
+                                                minWidth: '120px'
                                             }}
                                         >
                                             <button
@@ -178,10 +142,9 @@ export default function Sidebar() {
                                                     toast.success('Pin coming soon!');
                                                     setActiveMenuId(null);
                                                 }}
-                                                className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-[var(--gray-800)]"
-                                                style={{ color: 'var(--gray-300)' }}
+                                                className="btn btn-ghost w-full" style={{ justifyContent: 'flex-start' }}
                                             >
-                                                <Pin size={14} /> Pin
+                                                <Pin size={14} /> PIN
                                             </button>
                                             <button
                                                 onClick={(e) => {
@@ -189,20 +152,18 @@ export default function Sidebar() {
                                                     toast.success('Archive coming soon!');
                                                     setActiveMenuId(null);
                                                 }}
-                                                className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-[var(--gray-800)]"
-                                                style={{ color: 'var(--gray-300)' }}
+                                                className="btn btn-ghost w-full" style={{ justifyContent: 'flex-start' }}
                                             >
-                                                <Archive size={14} /> Archive
+                                                <Archive size={14} /> ARCHIVE
                                             </button>
                                             <button
                                                 onClick={(e) => {
                                                     handleDeleteChat(e, chat._id);
                                                     setActiveMenuId(null);
                                                 }}
-                                                className="w-full text-left flex items-center gap-2 px-3 py-2 text-xs hover:bg-[var(--gray-800)]"
-                                                style={{ color: 'var(--error)' }}
+                                                className="btn btn-ghost w-full" style={{ justifyContent: 'flex-start', color: 'var(--error)' }}
                                             >
-                                                <Trash2 size={14} /> Delete
+                                                <Trash2 size={14} /> DELETE
                                             </button>
                                         </div>
                                     )}
@@ -213,15 +174,18 @@ export default function Sidebar() {
                 </ul>
 
                 {/* Navigation */}
-                <div style={{ marginTop: 'var(--space-4)', borderTop: '1px solid var(--gray-800)', paddingTop: 'var(--space-3)' }}>
-                    <ul style={{ listStyle: 'none', padding: '0 var(--space-2)' }}>
+                <div style={{ marginTop: 'var(--space-6)', borderTop: '1px solid var(--border-strong)', paddingTop: 'var(--space-4)' }}>
+                    <p className="text-mono text-xs text-muted mb-2 px-4 uppercase tracking-widest">
+                        System
+                    </p>
+                    <ul style={{ listStyle: 'none' }}>
                         {navItems.map((item) => (
-                            <li key={item.path} style={{ marginBottom: 'var(--space-1)' }}>
+                            <li key={item.path}>
                                 <NavLink
                                     to={item.path}
                                     className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                                 >
-                                    <item.icon size={20} />
+                                    <item.icon size={18} />
                                     <span>{item.label}</span>
                                 </NavLink>
                             </li>
@@ -232,28 +196,21 @@ export default function Sidebar() {
 
             {/* User Section */}
             <div className="sidebar-footer">
-                <div
-                    className="flex items-center gap-3"
-                    style={{
-                        padding: 'var(--space-3) var(--space-4)',
-                        background: 'var(--gray-800)',
-                        borderRadius: 'var(--radius-lg)'
-                    }}
-                >
-                    <div className="avatar avatar-md avatar-gradient">
+                <div className="user-card">
+                    <div className="user-avatar">
                         {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
-                    <div className="flex-1" style={{ minWidth: 0 }}>
-                        <p className="font-medium text-sm truncate">{user?.name}</p>
-                        <p className="text-xs truncate" style={{ color: 'var(--gray-500)' }}>{user?.email}</p>
+                    <div className="flex-1 min-w-0 text-mono">
+                        <p className="font-bold text-sm text-primary truncate uppercase">{user?.name}</p>
+                        <p className="text-xs text-muted truncate">{user?.email}</p>
                     </div>
                     <button
                         onClick={handleLogout}
                         className="btn-ghost"
                         title="Logout"
-                        style={{ color: 'var(--gray-400)' }}
+                        style={{ padding: '4px' }}
                     >
-                        <LogOut size={18} />
+                        <LogOut size={16} />
                     </button>
                 </div>
             </div>

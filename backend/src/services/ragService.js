@@ -1,165 +1,284 @@
 import { getGroqClient } from '../config/groq.js';
-import { findSimilarChunks } from './vectorService.js';
+import { findSimilarChunks, findSimilarChunksByVector } from './vectorService.js';
+import { generateEmbedding } from './embeddingService.js';
 
 /**
  * RAG (Retrieval-Augmented Generation) Pipeline
- * Retrieves relevant context and generates grounded answers
+ *
+ * Features:
+ *   • HyDE  — Hypothetical Document Embeddings for improved retrieval precision
+ *   • Inline citation markers [1], [2] injected into answers
+ *   • Correct multi-turn conversation history injection
+ *   • User-configurable topK, model, and threshold
+ *   • Retrieval metadata (tokens searched, chunks found) returned for analytics
  */
 
-const SYSTEM_PROMPT = `You are a helpful AI assistant that answers questions based on the provided context from the user's documents. 
+// ── System Prompts ────────────────────────────────────────────────────────────
 
-Instructions:
-1. ONLY use information from the provided context to answer questions
-2. If the context doesn't contain relevant information, say "I couldn't find relevant information in your documents"
-3. Answer the user's question DIRECTLY. Do NOT start with "Based on the provided context..." or "According to the documents...".
-4. Do NOT mention specific source filenames, 'Source 1', or 'Source IDs' in your final answer.
-5. When the user asks for specific information like lists, skills, or structured data, QUOTE the exact content from the documents word-for-word, preserving the original bullet points, line breaks, and formatting.
-6. Format your response using markdown: use bullet points (- or •), numbered lists, and line breaks to make the information clear and readable.`;
+const SYSTEM_PROMPT = `You are DocMind, a precise document intelligence assistant. Your only knowledge source is the provided document context.
 
+Rules:
+1. Answer ONLY from the provided context. Do NOT use outside knowledge.
+2. Cite your sources using inline markers like [1], [2] that match the numbered sources provided.
+3. If a fact comes from Source 2, write it like: "The report states... [2]"
+4. If the context doesn't contain the answer, say exactly: "I couldn't find relevant information in the provided documents."
+5. Never mention "context" or "chunks" — speak naturally as if reading documents.
+6. Format responses with markdown: headers, bullet points, bold for key terms.
+7. Be concise but complete. Prioritise accuracy over verbosity.`;
+
+const HYDE_PROMPT = `Generate a short, factual passage (2-4 sentences) that would directly answer the following question. Write as if it were an excerpt from a relevant document. Do not include caveats or say you're generating a hypothetical — just write the passage.
+
+Question: `;
+
+// ── HyDE: Hypothetical Document Embedding ────────────────────────────────────
 /**
- * Generate a RAG response
- * @param {string} query - User's question
- * @param {string} userId - User ID
- * @param {string[]} documentIds - Optional document IDs to search in
- * @param {number} topK - Number of context chunks to retrieve
- * @returns {Promise<Object>} Answer with sources
+ * Generate a hypothetical answer to the query, then embed it.
+ * HyDE embedding is closer in semantic space to real relevant chunks
+ * than a bare question, improving retrieval precision significantly.
  */
-export const generateRAGResponse = async (query, userId, documentIds = null, topK = 5) => {
-  // Retrieve relevant chunks
-  let relevantChunks = [];
-  try {
-    relevantChunks = await findSimilarChunks(query, userId, documentIds, topK);
-  } catch (error) {
-    console.error('Retrieval/Embedding Error:', error);
-    return {
-      answer: `I encountered an error searching your documents: ${error.message}.\n\nThis usually means there is an issue with the Embedding Service (Gemini).`,
-      sources: [],
-      hasContext: false
-    };
-  }
-  
-  if (relevantChunks.length === 0) {
-    return {
-      answer: "I couldn't find any relevant information in your documents. Please make sure you've uploaded documents and they've been processed.",
-      sources: [],
-      hasContext: false
-    };
-  }
-  
-  // Build context from chunks
-  const context = relevantChunks.map(chunk => 
-    `--- Document Context from: ${chunk.documentName} ---\n${chunk.text}`
-  ).join('\n\n');
-  
-  // Build the prompt
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: `Context from user's documents:\n${context}\n\n---\n\nUser's Question: ${query}\n\nPlease provide a helpful answer based on the context above:` }
-  ];
-
-  // Generate response with Groq
-  const groq = getGroqClient();
-  let answer = '';
-  
+const generateHyDEEmbedding = async (query, groq, model) => {
   try {
     const completion = await groq.chat.completions.create({
-      messages: messages,
-      model: "llama-3.3-70b-versatile", // Using Llama 3.3 70B (Versatile)
+      model,
+      messages: [
+        { role: 'user', content: HYDE_PROMPT + query }
+      ],
+      max_tokens: 200,
+      temperature: 0.3
     });
-    
-    answer = completion.choices[0].message.content;
-  } catch (error) {
-    console.error('Groq Generation Error:', error);
-    answer = `I encountered an error connecting to the AI model: ${error.message}. \n\nPlease check your GROQ_API_KEY environment variable.`;
+    const hypothetical = completion.choices[0].message.content;
+    console.log(`💡 [HyDE] Generated hypothetical: "${hypothetical.substring(0, 80)}..."`);
+    return await generateEmbedding(hypothetical);
+  } catch (err) {
+    console.warn('⚠️  HyDE generation failed, falling back to direct query embedding:', err.message);
+    return null; // caller will fall back to direct query embedding
   }
-  
-  // Prepare sources for citation
-  const sources = relevantChunks.map(chunk => ({
+};
+
+// ── Context Builder ───────────────────────────────────────────────────────────
+const buildContext = (chunks) =>
+  chunks
+    .map((chunk, i) =>
+      `[Source ${i + 1}] From "${chunk.documentName}":\n${chunk.text}`
+    )
+    .join('\n\n---\n\n');
+
+// ── Source Formatter ──────────────────────────────────────────────────────────
+const formatSources = (chunks) =>
+  chunks.map((chunk, i) => ({
+    index: i + 1,
     documentId: chunk.documentId,
     documentName: chunk.documentName,
-    chunkText: chunk.text.substring(0, 200) + (chunk.text.length > 200 ? '...' : ''),
-    similarity: Math.round(chunk.similarity * 100) / 100
+    chunkText: chunk.text.substring(0, 300) + (chunk.text.length > 300 ? '...' : ''),
+    similarity: Math.round(chunk.similarity * 1000) / 1000,
+    chunkIndex: chunk.chunkIndex,
+    tokenCount: chunk.tokenCount
   }));
-  
+
+// ── Non-streaming RAG Response ────────────────────────────────────────────────
+export const generateRAGResponse = async (
+  query,
+  userId,
+  documentIds = null,
+  userSettings = {}
+) => {
+  const {
+    topK = 5,
+    similarityThreshold = 0.3,
+    useHyDE = true,
+    model = 'llama-3.3-70b-versatile'
+  } = userSettings;
+
+  const groq = getGroqClient();
+
+  // Step 1: Embed query (with optional HyDE)
+  let retrievalEmbedding = null;
+  if (useHyDE) {
+    retrievalEmbedding = await generateHyDEEmbedding(query, groq, model);
+  }
+
+  // Step 2: Retrieve relevant chunks
+  let relevantChunks = [];
+  try {
+    if (retrievalEmbedding) {
+      relevantChunks = await findSimilarChunksByVector(
+        retrievalEmbedding, userId, documentIds, topK, similarityThreshold
+      );
+      // If HyDE retrieval found nothing, retry with direct query
+      if (relevantChunks.length === 0) {
+        relevantChunks = await findSimilarChunks(
+          query, userId, documentIds, topK, similarityThreshold
+        );
+      }
+    } else {
+      relevantChunks = await findSimilarChunks(
+        query, userId, documentIds, topK, similarityThreshold
+      );
+    }
+  } catch (error) {
+    console.error('❌ Retrieval error:', error);
+    return {
+      answer: `Retrieval error: ${error.message}`,
+      sources: [],
+      hasContext: false,
+      retrievalStats: { chunksFound: 0, hydeUsed: false }
+    };
+  }
+
+  if (relevantChunks.length === 0) {
+    return {
+      answer: "I couldn't find relevant information in the provided documents. Try uploading more documents or rephrasing your question.",
+      sources: [],
+      hasContext: false,
+      retrievalStats: { chunksFound: 0, hydeUsed: !!retrievalEmbedding }
+    };
+  }
+
+  // Step 3: Build prompt with numbered context sources
+  const context = buildContext(relevantChunks);
+  const messages = [
+    { role: 'system', content: SYSTEM_PROMPT },
+    {
+      role: 'user',
+      content: `Document Sources:\n\n${context}\n\n---\n\nQuestion: ${query}\n\nProvide a well-cited answer using [1], [2] etc. to reference the sources above:`
+    }
+  ];
+
+  // Step 4: Generate answer
+  let answer = '';
+  try {
+    const completion = await groq.chat.completions.create({
+      messages,
+      model,
+      temperature: 0.1,
+      max_tokens: 1024
+    });
+    answer = completion.choices[0].message.content;
+  } catch (error) {
+    console.error('❌ Groq generation error:', error);
+    answer = `Generation error: ${error.message}`;
+  }
+
   return {
     answer,
-    sources,
-    hasContext: true
+    sources: formatSources(relevantChunks),
+    hasContext: true,
+    retrievalStats: {
+      chunksFound: relevantChunks.length,
+      hydeUsed: !!retrievalEmbedding,
+      topK,
+      model
+    }
   };
 };
 
-/**
- * Generate a streaming RAG response
- * @param {string} query - User's question
- * @param {string} userId - User ID
- * @param {string[]} documentIds - Optional document IDs
- * @param {Array} conversationHistory - Previous messages in the chat
- * @returns {AsyncGenerator} Streaming response
- */
-export async function* generateStreamingRAGResponse(query, userId, documentIds = null, conversationHistory = []) {
-  const relevantChunks = await findSimilarChunks(query, userId, documentIds, 5);
-  
+// ── Streaming RAG Response ────────────────────────────────────────────────────
+export async function* generateStreamingRAGResponse(
+  query,
+  userId,
+  documentIds = null,
+  conversationHistory = [],
+  userSettings = {}
+) {
+  const {
+    topK = 5,
+    similarityThreshold = 0.3,
+    useHyDE = true,
+    model = 'llama-3.3-70b-versatile'
+  } = userSettings;
+
+  const groq = getGroqClient();
+
+  // Step 1: HyDE embedding
+  let retrievalEmbedding = null;
+  if (useHyDE) {
+    retrievalEmbedding = await generateHyDEEmbedding(query, groq, model);
+  }
+
+  // Step 2: Retrieve
+  let relevantChunks = [];
+  try {
+    if (retrievalEmbedding) {
+      relevantChunks = await findSimilarChunksByVector(
+        retrievalEmbedding, userId, documentIds, topK, similarityThreshold
+      );
+      if (relevantChunks.length === 0) {
+        relevantChunks = await findSimilarChunks(
+          query, userId, documentIds, topK, similarityThreshold
+        );
+      }
+    } else {
+      relevantChunks = await findSimilarChunks(
+        query, userId, documentIds, topK, similarityThreshold
+      );
+    }
+  } catch (error) {
+    yield { type: 'error', content: `Retrieval failed: ${error.message}` };
+    return;
+  }
+
+  // Step 3: Yield retrieval stats + sources before streaming answer
+  const retrievalStats = {
+    chunksFound: relevantChunks.length,
+    hydeUsed: !!retrievalEmbedding,
+    topK,
+    model
+  };
+
+  yield { type: 'retrieval_stats', content: retrievalStats };
+
   if (relevantChunks.length === 0) {
     yield {
       type: 'answer',
-      content: "I couldn't find any relevant information in your documents."
+      content: "I couldn't find relevant information in the provided documents. Try uploading more documents or rephrasing your question."
     };
     return;
   }
-  
-  // Yield sources first
+
   yield {
     type: 'sources',
-    content: relevantChunks.map(chunk => ({
-      documentId: chunk.documentId,
-      documentName: chunk.documentName,
-      chunkText: chunk.text.substring(0, 200) + '...',
-      similarity: chunk.similarity
-    }))
+    content: formatSources(relevantChunks)
   };
-  
-  const context = relevantChunks.map(chunk => 
-    `--- Document Context from: ${chunk.documentName} ---\n${chunk.text}`
-  ).join('\n\n');
-  
-  // Build messages with conversation history
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT }
-  ];
-  
-  // Add conversation history (limit to last 10 messages to avoid token overflow)
-  const recentHistory = conversationHistory.slice(-10);
+
+  // Step 4: Build messages with CORRECT multi-turn history injection
+  //   History is injected BEFORE the current context turn so the model
+  //   has full context at the current turn without contaminating history.
+  const context = buildContext(relevantChunks);
+
+  const messages = [{ role: 'system', content: SYSTEM_PROMPT }];
+
+  // Inject recent history (compressed to last 6 turns = 3 exchanges)
+  const recentHistory = conversationHistory.slice(-6);
   for (const msg of recentHistory) {
+    // Only inject the content, not prior contexts (avoids token explosion)
     messages.push({ role: msg.role, content: msg.content });
   }
-  
-  // Add current context and question
-  messages.push({ role: "user", content: `Context from documents:\n${context}\n\nQuestion: ${query}` });
 
-  const groq = getGroqClient();
-  
+  // Current turn — context + question
+  messages.push({
+    role: 'user',
+    content: `Document Sources:\n\n${context}\n\n---\n\nQuestion: ${query}\n\nProvide a well-cited answer using [1], [2] etc.:`
+  });
+
+  // Step 5: Stream answer
   try {
     const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: messages,
+      model,
+      messages,
       stream: true,
+      temperature: 0.1,
+      max_tokens: 1024
     });
-    
+
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       if (content) {
-        yield {
-          type: 'answer',
-          content: content
-        };
+        yield { type: 'answer', content };
       }
     }
   } catch (error) {
-    console.error('Groq Streaming Error:', error);
-    yield {
-      type: 'answer',
-      content: `Error: ${error.message}`
-    };
+    console.error('❌ Groq streaming error:', error);
+    yield { type: 'error', content: `Streaming error: ${error.message}` };
   }
 }
 

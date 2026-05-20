@@ -11,14 +11,24 @@ const messageSchema = new mongoose.Schema({
     required: true
   },
   sources: [{
+    index: Number,
     documentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Document'
     },
     documentName: String,
     chunkText: String,
-    similarity: Number
+    similarity: Number,
+    chunkIndex: Number,
+    tokenCount: Number
   }],
+  // Retrieval metadata — powers the analytics dashboard
+  retrievalStats: {
+    chunksFound: Number,
+    hydeUsed: Boolean,
+    topK: Number,
+    model: String
+  },
   timestamp: {
     type: Date,
     default: Date.now
@@ -45,7 +55,6 @@ const chatHistorySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for efficient chat history retrieval
 chatHistorySchema.index({ userId: 1, updatedAt: -1 });
 
 const ChatHistory = mongoose.model('ChatHistory', chatHistorySchema);

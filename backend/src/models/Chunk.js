@@ -25,15 +25,17 @@ const chunkSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
-  startChar: {
+  // Token-level positional data (used by eval harness)
+  startToken: {
     type: Number,
-    required: true
+    default: 0
   },
-  endChar: {
+  endToken: {
     type: Number,
-    required: true
+    default: 0
   },
   metadata: {
+    tokenCount: Number,   // ← NEW: accurate token count
     wordCount: Number,
     charCount: Number
   }
@@ -41,8 +43,14 @@ const chunkSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Compound index for efficient retrieval
+// Compound index for efficient per-user retrieval
 chunkSchema.index({ userId: 1, documentId: 1 });
+
+// ── MongoDB Atlas Vector Search Index (create this in Atlas UI) ──────────────
+// Index name: "chunk_vector_index"
+// Field: "embedding" | Type: vector | Dimensions: 768 | Similarity: cosine
+// Pre-filter field: "userId" | Type: filter
+// ─────────────────────────────────────────────────────────────────────────────
 
 const Chunk = mongoose.model('Chunk', chunkSchema);
 

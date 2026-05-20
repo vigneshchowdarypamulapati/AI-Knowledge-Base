@@ -3,7 +3,7 @@ import path from 'path';
 import Document from '../models/Document.js';
 import Chunk from '../models/Chunk.js';
 import { extractText } from '../services/textExtractor.js';
-import { chunkText } from '../services/chunkService.js';
+import { chunkText, getChunkStats } from '../services/chunkService.js';
 import { generateEmbeddings } from '../services/embeddingService.js';
 
 /**
@@ -11,27 +11,21 @@ import { generateEmbeddings } from '../services/embeddingService.js';
  * POST /api/documents/upload
  */
 export const uploadDocument = async (req, res) => {
-  console.log('🚀 uploadDocument controller started');
   try {
     if (!req.file) {
-      console.log('❌ No file received in request');
-      return res.status(400).json({
-        success: false,
-        message: 'No file uploaded'
-      });
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
     }
 
-    console.log(`📁 File received: ${req.file.originalname} (${req.file.mimetype}, ${req.file.size} bytes)`);
     const { file } = req;
     const filePath = file.path;
 
-    // Extract text from document
-    console.log('📖 Starting text extraction...');
+    console.log(`📁 Processing: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
+
+    // Extract text
     const { text, metadata } = await extractText(filePath, file.mimetype);
-    console.log(`✅ Text extracted: ${text.length} chars`);
+    console.log(`✅ Extracted ${text.length} chars`);
 
     // Create document record
-    console.log('💾 Creating database record...');
     const document = await Document.create({
       userId: req.user._id,
       filename: file.filename,
@@ -40,51 +34,43 @@ export const uploadDocument = async (req, res) => {
       size: file.size,
       content: text,
       status: 'processing',
-      metadata: {
-        ...metadata,
-        extractedAt: new Date()
-      }
+      metadata: { ...metadata, extractedAt: new Date() }
     });
-    console.log(`✅ Document created with ID: ${document._id}`);
 
-    // Process in background (chunk and embed)
-    console.log('⚙️ Starting background processing...');
+    // Fire-and-forget background processing
     processDocument(document._id, text, req.user._id).catch(err => {
       console.error('❌ Background processing error:', err);
     });
 
-    // Clean up uploaded file
-    console.log('🧹 Cleaning up uploaded file...');
-    await fs.unlink(filePath).catch((err) => console.warn('⚠️ Failed to delete temp file:', err.message));
+    // Clean up temp file
+    await fs.unlink(filePath).catch(err =>
+      console.warn('⚠️  Failed to delete temp file:', err.message)
+    );
 
-    console.log('🎉 Sending success response');
     res.status(201).json({
       success: true,
-      message: 'Document uploaded and processing started',
+      message: 'Document uploaded. Processing started in background.',
       data: { document }
     });
   } catch (error) {
-    console.error('❌ Upload controller error:', error);
-    // Clean up file on error
-    if (req.file?.path) {
-      await fs.unlink(req.file.path).catch(() => {});
-    }
-
-    res.status(500).json({
-      success: false,
-      message: 'Upload failed',
-      error: error.message
-    });
+    if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
+    console.error('❌ Upload error:', error);
+    res.status(500).json({ success: false, message: 'Upload failed', error: error.message });
   }
 };
 
 /**
- * Process document: chunk and generate embeddings
+ * Background processor: chunk → embed → store
  */
 const processDocument = async (documentId, text, userId) => {
   try {
-    // Chunk the text
+    // Remove any existing chunks (supports re-processing)
+    await Chunk.deleteMany({ documentId });
+
+    // Chunk with token-aware strategy
     const chunks = chunkText(text);
+    const stats = getChunkStats(chunks);
+    console.log(`📊 Chunk stats:`, stats);
 
     if (chunks.length === 0) {
       await Document.findByIdAndUpdate(documentId, {
@@ -94,33 +80,34 @@ const processDocument = async (documentId, text, userId) => {
       return;
     }
 
-    // Generate embeddings for all chunks
+    // Generate embeddings in batches
     const texts = chunks.map(c => c.text);
     const embeddings = await generateEmbeddings(texts);
 
-    // Save chunks with embeddings
-    const chunkDocs = chunks.map((chunk, index) => ({
+    // Bulk insert chunks
+    const chunkDocs = chunks.map((chunk, i) => ({
       documentId,
       userId,
       text: chunk.text,
-      embedding: embeddings[index],
+      embedding: embeddings[i],
       chunkIndex: chunk.chunkIndex,
-      startChar: chunk.startChar,
-      endChar: chunk.endChar,
+      startToken: chunk.startToken || 0,
+      endToken: chunk.endToken || 0,
       metadata: chunk.metadata
     }));
 
     await Chunk.insertMany(chunkDocs);
 
-    // Update document status
+    // Update document status with chunk stats
     await Document.findByIdAndUpdate(documentId, {
       status: 'embedded',
-      chunkCount: chunks.length
+      chunkCount: chunks.length,
+      'metadata.chunkStats': stats
     });
 
     console.log(`✅ Document ${documentId} processed: ${chunks.length} chunks`);
   } catch (error) {
-    console.error(`❌ Document processing failed:`, error);
+    console.error('❌ Document processing failed:', error);
     await Document.findByIdAndUpdate(documentId, {
       status: 'error',
       error: error.message
@@ -135,19 +122,12 @@ const processDocument = async (documentId, text, userId) => {
 export const getDocuments = async (req, res) => {
   try {
     const documents = await Document.find({ userId: req.user._id })
-      .select('-content')
+      .select('-content -metadata.chunkStats')
       .sort({ createdAt: -1 });
 
-    res.json({
-      success: true,
-      data: { documents }
-    });
+    res.json({ success: true, data: { documents } });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch documents',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to fetch documents', error: error.message });
   }
 };
 
@@ -157,28 +137,48 @@ export const getDocuments = async (req, res) => {
  */
 export const getDocument = async (req, res) => {
   try {
-    const document = await Document.findOne({
-      _id: req.params.id,
-      userId: req.user._id
-    });
+    const document = await Document.findOne({ _id: req.params.id, userId: req.user._id });
 
     if (!document) {
-      return res.status(404).json({
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    res.json({ success: true, data: { document } });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch document', error: error.message });
+  }
+};
+
+/**
+ * Re-process a document (re-chunk + re-embed)
+ * POST /api/documents/:id/reprocess
+ */
+export const reprocessDocument = async (req, res) => {
+  try {
+    const document = await Document.findOne({ _id: req.params.id, userId: req.user._id });
+
+    if (!document) {
+      return res.status(404).json({ success: false, message: 'Document not found' });
+    }
+
+    if (!document.content) {
+      return res.status(400).json({
         success: false,
-        message: 'Document not found'
+        message: 'Document content not available for reprocessing. Please re-upload the file.'
       });
     }
 
-    res.json({
-      success: true,
-      data: { document }
+    // Reset status to processing
+    await Document.findByIdAndUpdate(document._id, { status: 'processing', error: null });
+
+    // Re-process in background
+    processDocument(document._id, document.content, req.user._id).catch(err => {
+      console.error('❌ Reprocess error:', err);
     });
+
+    res.json({ success: true, message: 'Document reprocessing started' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch document',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to reprocess', error: error.message });
   }
 };
 
@@ -188,32 +188,73 @@ export const getDocument = async (req, res) => {
  */
 export const deleteDocument = async (req, res) => {
   try {
-    const document = await Document.findOneAndDelete({
-      _id: req.params.id,
-      userId: req.user._id
-    });
+    const document = await Document.findOneAndDelete({ _id: req.params.id, userId: req.user._id });
 
     if (!document) {
-      return res.status(404).json({
-        success: false,
-        message: 'Document not found'
-      });
+      return res.status(404).json({ success: false, message: 'Document not found' });
     }
 
-    // Delete associated chunks
     await Chunk.deleteMany({ documentId: document._id });
 
-    res.json({
-      success: true,
-      message: 'Document deleted'
-    });
+    res.json({ success: true, message: 'Document and all chunks deleted' });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to delete document',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: 'Failed to delete document', error: error.message });
   }
 };
 
-export default { uploadDocument, getDocuments, getDocument, deleteDocument };
+/**
+ * Get document stats for analytics
+ * GET /api/documents/stats
+ */
+export const getDocumentStats = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const [docStats, chunkStats] = await Promise.all([
+      Document.aggregate([
+        { $match: { userId } },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            totalSize: { $sum: '$size' },
+            totalChunks: { $sum: '$chunkCount' }
+          }
+        }
+      ]),
+      Chunk.aggregate([
+        { $match: { userId } },
+        {
+          $group: {
+            _id: null,
+            totalChunks: { $sum: 1 },
+            avgTokens: { $avg: '$metadata.tokenCount' },
+            minTokens: { $min: '$metadata.tokenCount' },
+            maxTokens: { $max: '$metadata.tokenCount' }
+          }
+        }
+      ])
+    ]);
+
+    // Total document count
+    const totalDocs = await Document.countDocuments({ userId });
+
+    const statusMap = docStats.reduce((acc, s) => {
+      acc[s._id] = { count: s.count, size: s.totalSize, chunks: s.totalChunks };
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      data: {
+        totalDocuments: totalDocs,
+        byStatus: statusMap,
+        chunks: chunkStats[0] || { totalChunks: 0, avgTokens: 0 }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Failed to fetch stats', error: error.message });
+  }
+};
+
+export default { uploadDocument, getDocuments, getDocument, reprocessDocument, deleteDocument, getDocumentStats };

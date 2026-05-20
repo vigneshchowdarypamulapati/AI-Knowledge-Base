@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Upload, FileText, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { useDocuments } from '../context/DocumentContext';
 
 interface UploadItem {
@@ -166,21 +166,21 @@ export default function DocumentUpload() {
                     }}
                 />
 
-                <div className="upload-icon">
-                    <Upload size={28} />
+                <div className="text-accent mb-4 flex justify-center">
+                    <Upload size={32} />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Upload Documents</h3>
-                <p style={{ color: 'var(--gray-400)' }} className="text-sm mb-4">
-                    Drag and drop multiple files or click to browse
+                <h3 className="text-serif text-2xl mb-2">Initialize Data Transfer</h3>
+                <p className="text-mono text-xs uppercase tracking-widest text-muted mb-6">
+                    Drag and drop payloads or click to browse filesystem
                 </p>
-                <div className="flex items-center justify-center gap-4 text-xs" style={{ color: 'var(--gray-500)' }}>
-                    <span className="flex items-center gap-1">
+                <div className="flex items-center justify-center gap-6 text-mono text-xs uppercase tracking-widest text-muted">
+                    <span className="flex items-center gap-2 border border-border-strong px-2 py-1">
                         <FileText size={14} /> PDF
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-2 border border-border-strong px-2 py-1">
                         <FileText size={14} /> TXT
                     </span>
-                    <span className="flex items-center gap-1">
+                    <span className="flex items-center gap-2 border border-border-strong px-2 py-1">
                         <FileText size={14} /> DOCX
                     </span>
                 </div>
@@ -192,19 +192,19 @@ export default function DocumentUpload() {
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="mt-4 space-y-2"
+                        className="mt-6 space-y-2 border border-border-strong p-4"
                     >
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium" style={{ color: 'var(--gray-300)' }}>
-                                {isUploading ? 'Uploading...' : 'Upload Complete'}
+                        <div className="flex items-center justify-between mb-4 border-b border-border-strong pb-2">
+                            <span className="text-mono text-xs uppercase tracking-widest text-muted">
+                                {isUploading ? '[ TRANSFER IN PROGRESS ]' : '[ TRANSFER COMPLETE ]'}
                             </span>
                             {!isUploading && (
                                 <button
                                     onClick={clearQueue}
-                                    className="text-xs btn-ghost px-2 py-1"
-                                    style={{ color: 'var(--gray-500)' }}
+                                    className="btn-ghost text-mono text-xs uppercase tracking-widest"
+                                    style={{ padding: '2px 4px' }}
                                 >
-                                    Clear
+                                    [ CLEAR ]
                                 </button>
                             )}
                         </div>
@@ -213,28 +213,27 @@ export default function DocumentUpload() {
                                 key={item.id}
                                 initial={{ opacity: 0, x: -10 }}
                                 animate={{ opacity: 1, x: 0 }}
-                                className="flex items-center gap-3 p-3 rounded-lg"
-                                style={{ background: 'var(--gray-800)' }}
+                                className="flex items-center gap-4 p-3 border border-border-strong bg-bg-surface"
                             >
                                 {item.status === 'pending' && (
-                                    <div className="w-5 h-5 rounded-full" style={{ background: 'var(--gray-600)' }} />
+                                    <div className="w-3 h-3 bg-muted" />
                                 )}
                                 {item.status === 'uploading' && (
-                                    <Loader2 size={18} className="animate-spin" style={{ color: 'var(--primary-400)' }} />
+                                    <Loader2 size={14} className="animate-spin text-accent" />
                                 )}
                                 {item.status === 'success' && (
-                                    <Check size={18} style={{ color: 'var(--success)' }} />
+                                    <Check size={14} className="text-success" />
                                 )}
                                 {item.status === 'error' && (
-                                    <AlertCircle size={18} style={{ color: 'var(--error)' }} />
+                                    <AlertCircle size={14} className="text-error" />
                                 )}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm truncate" style={{ color: 'var(--gray-200)' }}>
+                                    <p className="text-mono text-sm truncate text-primary uppercase tracking-wider">
                                         {item.file.name}
                                     </p>
-                                    <p className="text-xs" style={{ 
+                                    <p className="text-mono text-xs uppercase tracking-widest" style={{ 
                                         color: item.status === 'error' ? 'var(--error)' : 
-                                               item.status === 'success' ? 'var(--success)' : 'var(--gray-500)' 
+                                               item.status === 'success' ? 'var(--success)' : 'var(--text-muted)' 
                                     }}>
                                         {item.message}
                                     </p>

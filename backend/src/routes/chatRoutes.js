@@ -1,12 +1,13 @@
 import express from 'express';
-import { 
-  queryDocuments, 
+import {
+  queryDocuments,
   streamQueryDocuments,
-  createChat, 
-  getChats, 
-  getChat, 
-  deleteChat, 
-  updateChat 
+  createChat,
+  getChats,
+  getChat,
+  deleteChat,
+  updateChat,
+  getChatStats
 } from '../controllers/chatController.js';
 import { authenticate } from '../middleware/auth.js';
 
@@ -18,6 +19,9 @@ router.use(authenticate);
 // Query endpoints
 router.post('/query', queryDocuments);
 router.post('/stream', streamQueryDocuments);
+
+// Analytics
+router.get('/stats', getChatStats);
 
 // Chat CRUD
 router.post('/', createChat);
